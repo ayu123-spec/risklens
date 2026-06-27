@@ -21,6 +21,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
+from app.api.training_routes import router as training_router
 from app.services.credit_service import credit_service
 
 
@@ -54,6 +55,7 @@ app.add_middleware(
 
 # All endpoints live under /api, e.g. POST /api/credit-risk
 app.include_router(router, prefix="/api")
+app.include_router(training_router, prefix="/api")
 
 
 @app.get("/", tags=["system"])
