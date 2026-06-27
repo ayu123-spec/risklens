@@ -54,8 +54,8 @@ See `ml/credit_risk/` and the per-phase notes in `docs/ROADMAP.md`.
 |-------|-------|--------|
 | 1 | Credit risk model + business logic | ✅ Done |
 | 2 | FastAPI backend (`/credit-risk` endpoint, validation, OOP) | ✅ Done |
-| 3 | React frontend (form + score display) | 🔨 Next |
-| 4 | Deploy (Render + Vercel, live URL) | ⬜ Planned |
+| 3 | React frontend (form + score display) | ✅ Done |
+| 4 | Deploy (Render + Vercel, live URL) | 🔨 Next |
 | 5 | Fraud detection engine | ⬜ Planned |
 | 6 | Database (Postgres → star schema → Snowflake) | ⬜ Planned |
 | 7 | BI dashboards (Power BI / Tableau) | ⬜ Planned |
