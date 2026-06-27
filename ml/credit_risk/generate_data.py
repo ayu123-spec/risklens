@@ -80,7 +80,15 @@ def generate() -> pd.DataFrame:
     # Loan burden: the loan relative to income matters more than raw amount.
     # A 500k loan is heavy on 35k income, trivial on 5M. This is the honest way
     # to let loan_amount raise risk without entangling it with DTI.
-    loan_to_income = (df.loan_amount / df.income).clip(0, 30)
+    loan_to_income = (df.loan_amount / df.income).clip(0, 15)
+
+    # Direct income effect: lower income -> higher risk, ACROSS THE WHOLE RANGE,
+    # not just via the loan-to-income ratio. We use log(income) so the effect is
+    # smooth and monotonic from very low to very high earners (each doubling of
+    # income lowers risk by a steady amount, which matches reality). This is the
+    # fix for income previously having only a weak, saturating, indirect voice.
+    # Reference point: ~80k income is "neutral".
+    income_effect = -0.65 * (np.log(df.income.clip(lower=1)) - np.log(80000))
 
     # Age effect: risk is highest for the very young (thin track record) and
     # eases as applicants get older and more established, leveling off.
@@ -93,6 +101,7 @@ def generate() -> pd.DataFrame:
         - 0.015 * (df.credit_score - 680)     # higher score -> lower risk
         + 2.4 * (df.debt_to_income - 0.35)    # higher DTI -> higher risk
         + 0.20 * loan_to_income               # bigger loan vs income -> higher risk
+        + income_effect                       # lower income -> higher risk (direct)
         + age_effect                          # older -> lower risk
         + 0.55 * df.num_delinquencies         # past delinquencies hurt
         + 0.30 * df.existing_loans            # more existing debt -> higher risk

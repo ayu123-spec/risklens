@@ -50,8 +50,13 @@ class CreditRiskResponse(BaseModel):
     default_probability: float
     risk_score: int
     risk_category: str
+    risk_grade: str
     approval: str
+    suggested_interest_rate: float
+    max_eligible_loan: int
+    confidence: int
     reasons: List[str]
+    summary: str
 
 
 class HealthResponse(BaseModel):
