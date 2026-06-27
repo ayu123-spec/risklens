@@ -30,7 +30,13 @@ def generate() -> pd.DataFrame:
     credit_score = np.clip(RNG.normal(680, 80, N), 300, 850).astype(int)
     existing_loans = RNG.poisson(1.2, N)
     num_delinquencies = RNG.poisson(0.4, N)
-    credit_history_length = np.clip(age - RNG.integers(18, 25, N), 0, None)
+    # Credit history length: related to age (you can't have 30 years of credit
+    # at 25), but with real independent variation — some people open credit
+    # early, others late. This avoids near-perfect correlation with age, which
+    # would otherwise make the two features statistically indistinguishable.
+    credit_history_length = np.clip(
+        age - RNG.integers(18, 25, N) - RNG.exponential(5, N), 0, None
+    ).round(0)
 
     # --- Loan-specific features ---
     loan_amount = np.round(RNG.lognormal(mean=11.5, sigma=0.6, size=N)).astype(int)
@@ -66,15 +72,31 @@ def generate() -> pd.DataFrame:
     })
 
     # --- Create the TARGET (defaulted: 1 = yes, 0 = no) ---
-    # We compute a "risk score" from the features using weights that mimic
-    # real-world intuition, convert it to a probability, then sample the label.
-    # This is what gives the model a learnable signal.
+    # Every feature here has a REAL, intentional effect in a sensible direction,
+    # so the model learns relationships that match real-world credit intuition.
+    # (A subtle earlier version left age and loan-size as "spectator" features
+    # with no direct signal, which let the model learn meaningless noise. Fixed.)
+
+    # Loan burden: the loan relative to income matters more than raw amount.
+    # A 500k loan is heavy on 35k income, trivial on 5M. This is the honest way
+    # to let loan_amount raise risk without entangling it with DTI.
+    loan_to_income = (df.loan_amount / df.income).clip(0, 30)
+
+    # Age effect: risk is highest for the very young (thin track record) and
+    # eases as applicants get older and more established, leveling off.
+    # Negative coefficient = older -> lower risk. Strengthened so the model
+    # learns it stably rather than splitting it with credit-history length.
+    age_effect = -0.045 * (df.age - 30)
+
     z = (
-        -5.2                                  # baseline: most people repay
+        -4.8                                  # baseline: most people repay
         - 0.015 * (df.credit_score - 680)     # higher score -> lower risk
-        + 3.0 * (df.debt_to_income - 0.35)    # higher DTI -> higher risk
+        + 2.4 * (df.debt_to_income - 0.35)    # higher DTI -> higher risk
+        + 0.20 * loan_to_income               # bigger loan vs income -> higher risk
+        + age_effect                          # older -> lower risk
         + 0.55 * df.num_delinquencies         # past delinquencies hurt
-        + 0.12 * df.existing_loans
+        + 0.30 * df.existing_loans            # more existing debt -> higher risk
+        + 0.012 * (df.loan_tenure - 36)       # longer tenure -> modestly higher risk
         + 0.05 * (df.interest_rate - 12)      # priced-up loans are riskier
         - 0.03 * df.employment_length         # job stability helps
         + RNG.normal(0, 0.5, N)               # noise: the world isn't perfectly predictable
