@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import RiskDashboard from "./components/RiskDashboard.jsx";
+import Welcome from "./components/Welcome.jsx";
 
 const THEMES = [
-  { id: "midnight", color: "#6366f1" },
+  { id: "midnight", color: "#2b4dff" },
   { id: "arctic",   color: "#2563eb" },
   { id: "forest",   color: "#10b981" },
   { id: "plum",     color: "#a855f7" },
@@ -33,8 +34,13 @@ const FIELDS = {
 
 const PURPOSES = ["home", "auto", "personal", "education", "business"];
 
+// API base URL: empty in dev (Vite proxies "/api" to the local backend), or set
+// to the deployed backend URL via VITE_API_URL in production (e.g. on Vercel).
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 export default function App() {
   const [theme, setTheme] = useState("midnight");
+  const [userName, setUserName] = useState(null); // null until they pass the welcome screen
   const [form, setForm] = useState(INITIAL);
   const [errors, setErrors] = useState({});
   const [result, setResult] = useState(null);
@@ -42,6 +48,11 @@ export default function App() {
   const [apiError, setApiError] = useState(null);
 
   useEffect(() => { document.documentElement.setAttribute("data-theme", theme); }, [theme]);
+
+  // Show the welcome/landing screen until the user enters their name.
+  if (!userName) {
+    return <Welcome onEnter={setUserName} />;
+  }
 
   function validateField(field, value) {
     const cfg = FIELDS[field];
@@ -75,7 +86,7 @@ export default function App() {
     }
     setApiError(null); setLoading(true); setResult(null);
     try {
-      const res = await fetch("/api/credit-risk", {
+      const res = await fetch(`${API_BASE}/api/credit-risk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -101,7 +112,7 @@ export default function App() {
           <div className="brand-mark">R</div>
           <div>
             <div className="brand-name">RiskLens</div>
-            <div className="brand-sub">Credit Risk Intelligence</div>
+            <div className="brand-sub">Hi {userName} · Credit Risk Intelligence</div>
           </div>
         </div>
         <div className="themes">
@@ -123,24 +134,24 @@ export default function App() {
         <div className="kpi">
           <div className="kpi-label">Risk score</div>
           <div className="kpi-value">{result ? result.risk_score : "—"}</div>
-          <div className={`kpi-trend ${result ? (result.risk_score > 50 ? "up" : "down") : "flat"}`}>
-            {result ? (result.risk_score > 50 ? "Above threshold" : "Within tolerance") : "Awaiting input"}
+          <div className={`kpi-trend ${result ? (result.risk_score > 35 ? "up" : "down") : "flat"}`}>
+            {result ? `Grade ${result.risk_grade}` : "Awaiting input"}
           </div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Default probability</div>
           <div className="kpi-value">{result ? (result.default_probability * 100).toFixed(1) + "%" : "—"}</div>
-          <div className="kpi-trend flat">{result ? "Calibrated estimate" : "Awaiting input"}</div>
+          <div className="kpi-trend flat">{result ? `${result.confidence}% confidence` : "Awaiting input"}</div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Decision</div>
-          <div className="kpi-value" style={{ fontSize: "1.15rem" }}>{result ? result.approval : "—"}</div>
+          <div className="kpi-value" style={{ fontSize: "1.05rem" }}>{result ? result.approval : "—"}</div>
           <div className="kpi-trend flat">{result ? result.risk_category : "Awaiting input"}</div>
         </div>
         <div className="kpi">
-          <div className="kpi-label">Risk factors</div>
-          <div className="kpi-value">{result ? result.reasons.length : "—"}</div>
-          <div className="kpi-trend flat">{result ? "Flagged" : "Awaiting input"}</div>
+          <div className="kpi-label">Suggested rate</div>
+          <div className="kpi-value">{result ? (result.suggested_interest_rate > 0 ? result.suggested_interest_rate + "%" : "N/A") : "—"}</div>
+          <div className="kpi-trend flat">{result ? "Risk-based pricing" : "Awaiting input"}</div>
         </div>
       </div>
 

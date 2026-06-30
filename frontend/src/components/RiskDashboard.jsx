@@ -3,6 +3,7 @@ import {
   Chart as ChartJS, ArcElement, Tooltip, Legend,
   CategoryScale, LinearScale, BarElement,
 } from "chart.js";
+import { useCountUp } from "../useCountUp.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -10,37 +11,46 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 const CAT_COLOR = {
   "Very Low Risk": "#10b981",
   "Low Risk": "#84cc16",
-  "Medium Risk": "#f59e0b",
+  "Moderate Risk": "#eab308",
   "High Risk": "#f97316",
-  "Critical Risk": "#ef4444",
+  "Very High Risk": "#ef4444",
+  "Extreme Risk": "#b91c1c",
 };
 const APPROVAL_COLOR = {
-  "Approved": "#10b981",
-  "Approved with Conditions": "#f59e0b",
+  "Auto Approve": "#10b981",
+  "Approve": "#65a30d",
+  "Approve with Conditions": "#eab308",
   "Manual Review": "#f97316",
-  "Rejected": "#ef4444",
+  "Reject or Require Collateral": "#ef4444",
+  "Reject": "#b91c1c",
 };
 
 // A radial gauge: a doughnut filled proportionally to the score, colored by risk.
+// The fill sweeps up and the number counts up for a premium feel.
 function Gauge({ score, color }) {
+  const animated = useCountUp(score, 1000);
   const data = {
     datasets: [{
-      data: [score, 100 - score],
+      data: [animated, 100 - animated],
       backgroundColor: [color, "rgba(128,128,128,0.15)"],
       borderWidth: 0,
-      borderRadius: score > 2 ? 6 : 0,
+      borderRadius: animated > 2 ? 6 : 0,
       circumference: 270,
       rotation: 225,
       cutout: "78%",
     }],
   };
-  const opts = { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: false }, legend: { display: false } } };
+  const opts = {
+    responsive: true, maintainAspectRatio: false,
+    animation: false, // we drive the sweep ourselves via the count-up value
+    plugins: { tooltip: { enabled: false }, legend: { display: false } },
+  };
   return (
     <div className="gauge-wrap">
       <div style={{ width: 200, height: 150 }}>
         <Doughnut data={data} options={opts} />
       </div>
-      <div className="gauge-score" style={{ color }}>{score}</div>
+      <div className="gauge-score" style={{ color }}>{animated}</div>
       <div className="gauge-cat" style={{ color }}>Risk score / 100</div>
     </div>
   );
@@ -103,10 +113,24 @@ export default function RiskDashboard({ result, form }) {
           <div className="badges">
             <span className="badge" style={{ background: color }}>{result.risk_category}</span>
             <span className="badge" style={{ background: approvalColor }}>{result.approval}</span>
+            <span className="badge" style={{ background: "var(--surface-2)", color: "var(--ink)", border: "1px solid var(--border)" }}>
+              Grade {result.risk_grade}
+            </span>
           </div>
-          <div className="summary-line">
-            Estimated default probability of <strong>{(result.default_probability * 100).toFixed(1)}%</strong>,
-            placing this applicant in the <strong>{result.risk_category.replace(" Risk", "")}</strong> band.
+          <div className="summary-line">{result.summary}</div>
+          <div className="decision-metrics">
+            <div className="metric">
+              <span className="metric-label">Suggested rate</span>
+              <span className="metric-val">{result.suggested_interest_rate > 0 ? result.suggested_interest_rate + "%" : "—"}</span>
+            </div>
+            <div className="metric">
+              <span className="metric-label">Max eligible</span>
+              <span className="metric-val">{result.max_eligible_loan > 0 ? "₹" + result.max_eligible_loan.toLocaleString() : "—"}</span>
+            </div>
+            <div className="metric">
+              <span className="metric-label">Confidence</span>
+              <span className="metric-val">{result.confidence}%</span>
+            </div>
           </div>
         </div>
       </div>
