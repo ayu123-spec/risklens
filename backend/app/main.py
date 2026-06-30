@@ -15,6 +15,7 @@ What this file does:
   - mounts all the routes under /api.
 """
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -44,11 +45,16 @@ app = FastAPI(
 )
 
 # CORS: browsers block a web page from calling an API on a different origin
-# unless the API says it's allowed. During development we allow localhost.
-# In production, replace "*" with your actual Vercel frontend URL.
+# unless the API says it's allowed. In development we allow localhost; in
+# production, set the FRONTEND_URL environment variable to your deployed frontend
+# (e.g. https://risklens.vercel.app) and it will be allowed automatically.
+_dev_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+_frontend_url = os.getenv("FRONTEND_URL", "").strip()
+_allowed_origins = _dev_origins + ([_frontend_url] if _frontend_url else [])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"],
+    allow_origins=_allowed_origins or ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
