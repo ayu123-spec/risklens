@@ -46,8 +46,12 @@ app = FastAPI(
 
 # CORS: browsers block a web page from calling an API on a different origin
 # unless the API says it's allowed. In development we allow localhost; in
-# production, set the FRONTEND_URL environment variable to your deployed frontend
-# (e.g. https://risklens.vercel.app) and it will be allowed automatically.
+# production, set the FRONTEND_URL environment variable to your deployed frontend.
+#
+# Vercel gives an app several URLs: a stable one (risklens.vercel.app) AND a
+# unique one per deployment (risklens-abc123-user.vercel.app). To avoid CORS
+# breaking whenever you view a preview/deployment URL, we also allow any
+# *.vercel.app origin via a regex. FRONTEND_URL still pins your main domain.
 _dev_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 _frontend_url = os.getenv("FRONTEND_URL", "").strip()
 _allowed_origins = _dev_origins + ([_frontend_url] if _frontend_url else [])
@@ -55,6 +59,7 @@ _allowed_origins = _dev_origins + ([_frontend_url] if _frontend_url else [])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins or ["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_methods=["*"],
     allow_headers=["*"],
 )
