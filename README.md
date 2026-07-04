@@ -1,65 +1,34 @@
-# Banking Risk Intelligence Platform
+# Fraud Detection (Phase 5)
 
-A credit-risk and (eventually) fraud-detection platform, built **one runnable
-vertical slice at a time**. The goal is a deployed, working system you fully
-understand — not a skeleton.
+A credit-card fraud detection model on the Kaggle "Credit Card Fraud Detection"
+dataset (mlg-ulb/creditcardfraud) — 284,807 real transactions, only **0.173% fraud**.
 
-> **Status:** Phase 1 complete and runnable (credit risk ML + scoring engine).
-> Phases 2–4 (API, frontend, deploy) are the active next steps. Later phases are
-> roadmap, not stub files — folders fill with real code as each phase is built.
+## The challenge: extreme imbalance
+99.83% of transactions are legitimate. A naive model predicting "never fraud"
+would be 99.83% "accurate" while catching ZERO fraud. Beating that is the whole
+task. We use XGBoost with `scale_pos_weight` (~578:1) to weight fraud heavily.
 
-## Repository structure
+## Tuned for high recall (catching fraud)
+A missed fraud costs the bank the full transaction; a false alarm costs only a
+"was this you?" check. So we prioritize recall and expose a threshold table to
+choose the operating point.
 
-```
-banking-risk-platform/
-├── ml/                        # Machine learning layer
-│   └── credit_risk/
-│       ├── generate_data.py   #  ✅ synthetic loan data generator
-│       ├── train.py           #  ✅ trains + evaluates + calibrates + saves model
-│       └── scoring.py         #  ✅ business logic: score → category → approval
-│
-├── backend/                   # FastAPI service (Phase 2 — in progress)
-│   └── app/
-│       ├── api/               #  route handlers
-│       ├── core/              #  config, settings
-│       ├── models/            #  OOP domain classes (Customer, Loan, ...)
-│       ├── schemas/           #  Pydantic request/response models
-│       └── services/          #  wires the ML engine into the API
-│
-├── frontend/                  # React app (Phase 3 — planned)
-│   └── src/
-│       ├── components/        #  KPI cards, risk gauge, form
-│       └── pages/             #  Credit Risk page, dashboard
-│
-├── deploy/                    # Dockerfiles, Render/Vercel config (Phase 4)
-├── docs/                      # Architecture, API docs, design notes
-└── README.md                  # you are here
-```
+## Honest results (held-out test set)
+- **ROC-AUC: 0.980**
+- **PR-AUC: 0.874** — the metric that matters for extreme imbalance.
+- At a tuned threshold, **catches ~89% of fraud** (87 of 98) — a strong operational
+  result. The recall/false-alarm tradeoff is tunable to the bank's risk appetite.
 
-## Run what exists today
+## Feature engineering
+V1–V28 are already PCA-anonymized by the data provider. We add: `Amount_log`
+(fraud amounts are skewed — this made the top predictors), scaled Amount/Time,
+and hour-of-day. Top fraud predictors: V14, V4, V12, Amount_log.
 
-```bash
-cd ml
-pip install -r requirements.txt
-python3 credit_risk/generate_data.py   # writes loans.csv
-python3 credit_risk/train.py           # trains, saves model.joblib
-python3 credit_risk/scoring.py         # demo: scores a safe vs risky applicant
-```
+## How to run
+1. Download `creditcard.csv` from kaggle.com/datasets/mlg-ulb/creditcardfraud
+2. `pip install xgboost scikit-learn pandas`
+3. `python train_fraud.py path/to/creditcard.csv`
 
-See `ml/credit_risk/` and the per-phase notes in `docs/ROADMAP.md`.
-
-## Roadmap
-
-| Phase | Layer | Status |
-|-------|-------|--------|
-| 1 | Credit risk model + business logic | ✅ Done |
-| 2 | FastAPI backend (`/credit-risk` endpoint, validation, OOP) | ✅ Done |
-| 3 | React frontend (form + score display) | ✅ Done |
-| 4 | Deploy (Render + Vercel, live URL) | 🔨 Next |
-| 5 | Fraud detection engine | ⬜ Planned |
-| 6 | Database (Postgres → star schema → Snowflake) | ⬜ Planned |
-| 7 | BI dashboards (Power BI / Tableau) | ⬜ Planned |
-| 8 | Auth, RBAC, CI/CD, monitoring | ⬜ Planned |
-
-Each phase is self-contained and runnable before the next begins.
-```
+## Note
+Standalone model, separate from the live credit-risk app. Demonstrates handling
+extreme imbalance and the recall/precision tradeoff central to fraud detection.
