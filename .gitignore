@@ -31,3 +31,7 @@ Thumbs.db
 
 # --- Logs ---
 *.log
+creditcard.csv
+*.csv
+vercel.json
+*.db

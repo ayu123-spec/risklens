@@ -12,8 +12,12 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, desc, and_
 from sqlalchemy.orm import Session
 
-from models import (Applicant, Assessment, AssessmentStatus, AuditLog,
-                    DecisionOutcome, LoanProduct, ModelVersion, User, UserRole)
+try:
+    from .models import (Applicant, Assessment, AssessmentStatus, AuditLog,
+                        DecisionOutcome, LoanProduct, ModelVersion, User, UserRole)
+except ImportError:
+    from models import (Applicant, Assessment, AssessmentStatus, AuditLog,
+                        DecisionOutcome, LoanProduct, ModelVersion, User, UserRole)
 
 
 # ---------- Transaction helper ----------

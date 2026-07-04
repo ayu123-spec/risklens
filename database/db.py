@@ -10,7 +10,10 @@ import os
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
-from models import Base
+try:
+    from .models import Base
+except ImportError:
+    from models import Base
 
 
 def _normalize(url: str) -> str:
