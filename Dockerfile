@@ -20,6 +20,12 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY ml ./ml
 COPY backend ./backend
 
+# Copy the database layer and API router that live at the REPO ROOT.
+# backend/app/main.py adds /app to sys.path, so these must be present at /app
+# or the app crashes on startup with ModuleNotFoundError: No module named 'database'.
+COPY database ./database
+COPY db_routes.py ./db_routes.py
+
 # Train the model at build time so the image contains model.joblib + schema.joblib.
 # (On a fresh clone the artifacts are gitignored, so we generate them here.)
 RUN cd ml && python credit_risk/generate_data.py && python credit_risk/train.py
