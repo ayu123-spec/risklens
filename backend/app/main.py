@@ -10,7 +10,7 @@ Then open http://127.0.0.1:8000/docs in your browser for the interactive API.
 What this file does:
   - creates the FastAPI app,
   - enables CORS so the React frontend can call it from the browser,
-  - loads the ML model once when the app starts up (lifespan),
+  - loads the credit-risk model and the fraud-detection model at startup,
   - initialises the database and seeds reference data,
   - mounts all the routes under /api.
 """
@@ -21,10 +21,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# The database/ package and db_routes.py live at the REPO ROOT, two levels above
-# this file's folder. Add the repo root to sys.path so they can be imported.
-#   this file: <repo>/backend/app/main.py
-#   dirname x3 -> <repo>
+# The database/ package and db_routes.py live at the REPO ROOT, three levels
+# above this file. Add the repo root to sys.path so they can be imported.
+#   this file: <repo>/backend/app/main.py   ->  dirname x3  ->  <repo>
 sys.path.insert(
     0,
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -32,7 +31,9 @@ sys.path.insert(
 
 from app.api.routes import router
 from app.api.training_routes import router as training_router
+from app.api.fraud_routes import router as fraud_router
 from app.services.credit_service import credit_service
+from app.services.fraud_service import fraud_service
 
 from database.db import init_db, SessionLocal
 import database.repository as repo
@@ -42,10 +43,16 @@ from db_routes import router as db_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- runs ONCE on startup ---
-    # Load the model here so the first request isn't slow and we fail fast if
-    # the model file is missing.
+    # Load models here so the first request isn't slow and we fail fast if a
+    # model file is missing.
     credit_service.load()
     print("Credit risk model loaded. API ready.")
+
+    # Fraud model. It loads defensively -- if the artifacts are missing, the
+    # fraud endpoints report unavailable but credit scoring keeps working.
+    fraud_service.load()
+    print("Fraud model loaded." if fraud_service.is_loaded
+          else "Fraud model unavailable.")
 
     # Create tables if absent and seed reference data (loan products, model
     # version). Wrapped so a database problem never stops the API from serving
@@ -66,8 +73,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="RiskLens — Banking Risk Intelligence API",
-    description="Credit risk scoring API with persistence, workflow and analytics.",
-    version="0.3.0",
+    description="Credit risk scoring and fraud detection, with persistence, "
+                "workflow and analytics.",
+    version="0.4.0",
     lifespan=lifespan,
 )
 
@@ -96,9 +104,16 @@ app.include_router(router, prefix="/api")
 app.include_router(training_router, prefix="/api")
 # Database-backed endpoints: /api/assessments, /api/analytics/*, review & decide
 app.include_router(db_router, prefix="/api")
+# Fraud detection: /api/fraud/model-info, /api/fraud/samples, /api/fraud/score
+app.include_router(fraud_router, prefix="/api")
 
 
 @app.get("/", tags=["system"])
 def root():
     """A friendly landing response so hitting the base URL isn't a 404."""
-    return {"service": "RiskLens API", "docs": "/docs", "health": "/api/health"}
+    return {
+        "service": "RiskLens API",
+        "docs": "/docs",
+        "health": "/api/health",
+        "capabilities": ["credit-risk", "fraud-detection"],
+    }

@@ -1,0 +1,128 @@
+{
+ "features": [
+  "V1",
+  "V2",
+  "V3",
+  "V4",
+  "V5",
+  "V6",
+  "V7",
+  "V8",
+  "V9",
+  "V10",
+  "V11",
+  "V12",
+  "V13",
+  "V14",
+  "V15",
+  "V16",
+  "V17",
+  "V18",
+  "V19",
+  "V20",
+  "V21",
+  "V22",
+  "V23",
+  "V24",
+  "V25",
+  "V26",
+  "V27",
+  "V28",
+  "Amount_log",
+  "Amount_scaled",
+  "Time_scaled",
+  "Hour"
+ ],
+ "scaler": {
+  "mean": [
+   88.34961925093134,
+   94813.85957508067
+  ],
+  "scale": [
+   250.1196701352354,
+   47488.062585499334
+  ]
+ },
+ "roc_auc": 0.98,
+ "pr_auc": 0.874,
+ "thresholds": [
+  {
+   "threshold": 0.5,
+   "recall": 0.837,
+   "precision": 0.872,
+   "false_alarms": 12,
+   "caught": 82,
+   "total_fraud": 98
+  },
+  {
+   "threshold": 0.3,
+   "recall": 0.837,
+   "precision": 0.854,
+   "false_alarms": 14,
+   "caught": 82,
+   "total_fraud": 98
+  },
+  {
+   "threshold": 0.1,
+   "recall": 0.867,
+   "precision": 0.746,
+   "false_alarms": 29,
+   "caught": 85,
+   "total_fraud": 98
+  },
+  {
+   "threshold": 0.05,
+   "recall": 0.867,
+   "precision": 0.691,
+   "false_alarms": 38,
+   "caught": 85,
+   "total_fraud": 98
+  },
+  {
+   "threshold": 0.01,
+   "recall": 0.888,
+   "precision": 0.412,
+   "false_alarms": 124,
+   "caught": 87,
+   "total_fraud": 98
+  }
+ ],
+ "top_features": [
+  {
+   "feature": "V14",
+   "importance": 0.5546
+  },
+  {
+   "feature": "V4",
+   "importance": 0.0691
+  },
+  {
+   "feature": "V12",
+   "importance": 0.0398
+  },
+  {
+   "feature": "V8",
+   "importance": 0.0244
+  },
+  {
+   "feature": "V10",
+   "importance": 0.0203
+  },
+  {
+   "feature": "Amount_log",
+   "importance": 0.019
+  },
+  {
+   "feature": "V20",
+   "importance": 0.0187
+  },
+  {
+   "feature": "V7",
+   "importance": 0.0185
+  }
+ ],
+ "n_transactions": 284807,
+ "n_fraud": 492,
+ "fraud_rate": 0.00173,
+ "imbalance_ratio": 577
+}
