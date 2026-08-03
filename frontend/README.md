@@ -1,43 +1,29 @@
-# Frontend — RiskLens (Phase 3)
+# RiskLens Frontend (Multi-Page Premium)
 
-A React app: an applicant form that calls the Phase 2 `/credit-risk` API and
-displays the risk score, category, approval, and reasons.
+A three-page React frontend in the electric-blue-on-black premium aesthetic.
 
-## Run it (needs the backend running too!)
+## Pages
+- **Assess** (/) — the credit assessment form + animated gauge, factor chart, probability split.
+- **Analytics** (/analytics) — KPI tiles + risk-distribution doughnut, grade bar chart,
+  volume-over-time line chart. Driven by the /api/analytics/* endpoints.
+- **History** (/history) — table of past assessments with grade, category, and workflow status.
 
-You need **TWO terminals**.
+## Stack
+React + Vite + React Router + Chart.js. Shared design system in styles.css,
+shared chart theming in chartTheme.js, central API helper in api.js.
 
-**Terminal 1 — backend** (from repo root):
-```bash
-cd backend
-uvicorn app.main:app --reload
+## Run
 ```
-
-**Terminal 2 — frontend** (from repo root):
-```bash
-cd frontend
-npm install      # first time only
+npm install
 npm run dev
 ```
+Needs the backend running on :8000 (dev proxy is configured in vite.config.js).
 
-Then open **http://localhost:5173** in your browser. The form is pre-filled —
-just click **Assess Risk**.
-
-## How it talks to the backend
-`vite.config.js` proxies any `/api/*` request to `http://127.0.0.1:8000`, so the
-browser never sees a cross-origin call during development. When you deploy
-(Phase 4), you'll point it at your live backend URL instead.
+## Deploy
+Set VITE_API_URL to your backend URL. Build: `npm run build`, output in dist/.
 
 ## Structure
-```
-frontend/
-├── index.html              # page shell, loads the app
-├── vite.config.js          # dev server + API proxy
-├── package.json            # dependencies & scripts
-└── src/
-    ├── main.jsx            # entry point
-    ├── App.jsx             # form + state + API call
-    ├── styles.css          # styling
-    └── components/
-        └── RiskResult.jsx  # score gauge, badges, reasons
-```
+- src/App.jsx — routing + nav
+- src/pages/ — AssessPage, AnalyticsPage, HistoryPage
+- src/components/RiskDashboard.jsx — the assessment result view
+- src/api.js, src/chartTheme.js, src/useCountUp.js — shared helpers
