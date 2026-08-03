@@ -2,7 +2,6 @@
 main.py
 -------
 THE APP ENTRYPOINT. Run it with:
-
   cd backend
   uvicorn app.main:app --reload
 
@@ -10,20 +9,34 @@ Then open http://127.0.0.1:8000/docs in your browser for the interactive API.
 
 What this file does:
   - creates the FastAPI app,
-  - enables CORS so your React frontend (Phase 3) can call it from the browser,
+  - enables CORS so the React frontend can call it from the browser,
   - loads the ML model once when the app starts up (lifespan),
+  - initialises the database and seeds reference data,
   - mounts all the routes under /api.
 """
-
 import os
+import sys
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# The database/ package and db_routes.py live at the REPO ROOT, two levels above
+# this file's folder. Add the repo root to sys.path so they can be imported.
+#   this file: <repo>/backend/app/main.py
+#   dirname x3 -> <repo>
+sys.path.insert(
+    0,
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+)
+
 from app.api.routes import router
 from app.api.training_routes import router as training_router
 from app.services.credit_service import credit_service
+
+from database.db import init_db, SessionLocal
+import database.repository as repo
+from db_routes import router as db_router
 
 
 @asynccontextmanager
@@ -33,14 +46,28 @@ async def lifespan(app: FastAPI):
     # the model file is missing.
     credit_service.load()
     print("Credit risk model loaded. API ready.")
+
+    # Create tables if absent and seed reference data (loan products, model
+    # version). Wrapped so a database problem never stops the API from serving
+    # scores -- persistence degrades, scoring keeps working.
+    try:
+        init_db()
+        _seed = SessionLocal()
+        repo.seed_reference_data(_seed)
+        _seed.close()
+        print("Database initialized and seeded.")
+    except Exception as exc:
+        print(f"WARNING: database init failed ({exc}). Scoring still works; "
+              f"history/analytics will be unavailable.")
+
     yield
     # --- runs ONCE on shutdown (nothing to clean up yet) ---
 
 
 app = FastAPI(
     title="RiskLens — Banking Risk Intelligence API",
-    description="Credit risk scoring API. Phase 2 of the RiskLens platform.",
-    version="0.2.0",
+    description="Credit risk scoring API with persistence, workflow and analytics.",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -48,7 +75,7 @@ app = FastAPI(
 # unless the API says it's allowed. In development we allow localhost; in
 # production, set the FRONTEND_URL environment variable to your deployed frontend.
 #
-# Vercel gives an app several URLs: a stable one (risklens.vercel.app) AND a
+# Vercel gives an app several URLs: a stable one (risklens-vert.vercel.app) AND a
 # unique one per deployment (risklens-abc123-user.vercel.app). To avoid CORS
 # breaking whenever you view a preview/deployment URL, we also allow any
 # *.vercel.app origin via a regex. FRONTEND_URL still pins your main domain.
@@ -67,6 +94,8 @@ app.add_middleware(
 # All endpoints live under /api, e.g. POST /api/credit-risk
 app.include_router(router, prefix="/api")
 app.include_router(training_router, prefix="/api")
+# Database-backed endpoints: /api/assessments, /api/analytics/*, review & decide
+app.include_router(db_router, prefix="/api")
 
 
 @app.get("/", tags=["system"])
