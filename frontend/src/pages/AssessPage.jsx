@@ -8,7 +8,6 @@ const INITIAL = {
   loan_amount: 150000, loan_tenure: 36, interest_rate: 10,
   debt_to_income: 0.45, loan_purpose: "personal",
 };
-
 const FIELDS = {
   age: { label: "Age", min: 18, max: 100 },
   income: { label: "Annual income", min: 1, max: 100000000 },
@@ -31,39 +30,28 @@ export default function AssessPage() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
 
-  function validate(field, value) {
-    const cfg = FIELDS[field];
-    if (!cfg) return null;
-    if (value === "" || isNaN(value)) return "Required";
-    if (value < cfg.min) return `Min ${cfg.min}`;
-    if (value > cfg.max) return `Max ${cfg.max.toLocaleString()}`;
+  function validate(f, v) {
+    const c = FIELDS[f]; if (!c) return null;
+    if (v === "" || isNaN(v)) return "Required";
+    if (v < c.min) return `Min ${c.min}`;
+    if (v > c.max) return `Max ${c.max.toLocaleString()}`;
     return null;
   }
-
-  function handleChange(field, raw) {
-    const value = field === "loan_purpose" ? raw : Number(raw);
-    setForm((p) => ({ ...p, [field]: value }));
-    if (field !== "loan_purpose") setErrors((p) => ({ ...p, [field]: validate(field, value) }));
+  function handleChange(f, raw) {
+    const v = f === "loan_purpose" ? raw : Number(raw);
+    setForm((p) => ({ ...p, [f]: v }));
+    if (f !== "loan_purpose") setErrors((p) => ({ ...p, [f]: validate(f, v) }));
   }
-
   async function handleSubmit() {
-    const newErrors = {};
-    for (const f of Object.keys(FIELDS)) {
-      const err = validate(f, form[f]);
-      if (err) newErrors[f] = err;
-    }
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      setApiError("Fix the highlighted fields before assessing.");
-      return;
-    }
+    const errs = {};
+    for (const f of Object.keys(FIELDS)) { const e = validate(f, form[f]); if (e) errs[f] = e; }
+    setErrors(errs);
+    if (Object.keys(errs).length) { setApiError("Fix the highlighted fields before assessing."); return; }
     setApiError(null); setLoading(true); setResult(null);
-    try {
-      setResult(await apiPost("/api/credit-risk", form));
-    } catch (err) {
+    try { setResult(await apiPost("/api/credit-risk", form)); }
+    catch (err) {
       setApiError(err.message.includes("Failed to fetch")
-        ? "Can't reach the API. Make sure the backend is running."
-        : err.message);
+        ? "Can't reach the API. Make sure the backend is running." : err.message);
     } finally { setLoading(false); }
   }
 
@@ -74,10 +62,10 @@ export default function AssessPage() {
         <h1 className="page-title">Assess risk</h1>
         <p className="page-desc">
           Enter an applicant's details for an instant credit-risk assessment —
-          score, grade, recommendation, and the factors behind it.
+          score, grade, recommendation, and the factors behind it. Every
+          assessment is stored and feeds the analytics.
         </p>
       </div>
-
       <div className="assess-grid">
         <div className="card">
           <div className="card-title"><span className="dot" />Applicant details</div>
@@ -86,8 +74,8 @@ export default function AssessPage() {
               <div className="field" key={f}>
                 <label>{FIELDS[f].label}</label>
                 <input type="number" step={FIELDS[f].step || "any"} value={form[f]}
-                       className={errors[f] ? "invalid" : ""}
-                       onChange={(e) => handleChange(f, e.target.value)} />
+                  className={errors[f] ? "invalid" : ""}
+                  onChange={(e) => handleChange(f, e.target.value)} />
                 <span className="hint">{errors[f] || ""}</span>
               </div>
             ))}
@@ -104,12 +92,9 @@ export default function AssessPage() {
           </button>
           {apiError && <div className="alert">{apiError}</div>}
         </div>
-
         <div className="card">
           <div className="card-title"><span className="dot" />Assessment</div>
-          {result ? (
-            <RiskDashboard result={result} form={form} />
-          ) : (
+          {result ? <RiskDashboard result={result} form={form} /> : (
             <div className="result-empty">
               <div className="big-icon">◎</div>
               <div>Enter applicant details and run an assessment<br />to see the risk breakdown.</div>

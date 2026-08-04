@@ -1,4 +1,4 @@
-// Central API helper. Uses VITE_API_URL in production, proxy in dev.
+// Central API helper. Uses VITE_API_URL in production, Vite proxy in dev.
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export async function apiGet(path) {
@@ -11,7 +11,7 @@ export async function apiPost(path, body) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!res.ok) {
     const d = await res.json().catch(() => ({}));
